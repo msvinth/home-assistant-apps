@@ -1,7 +1,7 @@
 FROM ghcr.io/hassio-addons/debian-base:7.6.0
 
 LABEL \
-  io.hass.version="1.0.4" \
+  io.hass.version="1.0.5" \
   io.hass.type="app" \
   io.hass.arch="aarch64|amd64" \
   org.opencontainers.image.title="Copilot Terminal" \

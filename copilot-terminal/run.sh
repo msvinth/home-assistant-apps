@@ -245,6 +245,18 @@ generate_ha_context() {
         else
             bashio::log.warning "ha-context script not found, skipping"
         fi
+
+        # Copilot CLI looks for instructions in multiple places:
+        #   1. ~/.copilot/copilot-instructions.md  (user-level, already written by ha-context)
+        #   2. .github/copilot-instructions.md     (repo-level, in working directory)
+        # Symlink into /config (the working directory) so copilot always finds it
+        local instructions_file="${HOME}/.copilot/copilot-instructions.md"
+        if [ -f "$instructions_file" ]; then
+            mkdir -p /config/.github
+            ln -sf "$instructions_file" /config/.github/copilot-instructions.md
+            ln -sf "$instructions_file" /config/copilot-instructions.md
+            bashio::log.info "Copilot instructions linked to /config/.github/ and /config/"
+        fi
     else
         bashio::log.info "HA Smart Context disabled in configuration"
     fi

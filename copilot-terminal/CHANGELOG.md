@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5
+
+- **Fixed**: "No copilot instructions found" — symlink HA context to `/config/.github/copilot-instructions.md` and `/config/copilot-instructions.md` so Copilot CLI finds it in the working directory
+
 ## 1.0.4
 
 - **Fixed**: Further OOM reduction — removed Node.js/npm (~100MB+ RAM savings)
