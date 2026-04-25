@@ -1,7 +1,7 @@
 ---
 name: "Copilot Terminal"
 description: "Terminal interface for GitHub Copilot CLI with persistent auth and packages"
-version: "1.0.0"
+version: "1.0.1"
 slug: "copilot_terminal"
 init: false
 
@@ -11,11 +11,12 @@ arch:
   - amd64
 
 # External resources
-url: "https://github.com/githubnext/copilot-cli"
+url: "https://github.com/github/copilot-cli"
 
 # Web interface configuration
 ingress: true
 ingress_port: 7680
+ingress_stream: true
 panel_icon: mdi:github
 panel_title: "Copilot Terminal"
 panel_admin: true
@@ -31,12 +32,14 @@ options:
   auto_launch_copilot: true
   ha_smart_context: true
   enable_ha_mcp: true
+  github_token: ""
   persistent_apk_packages: []
   persistent_pip_packages: []
 schema:
   auto_launch_copilot: bool?
   ha_smart_context: bool?
   enable_ha_mcp: bool?
+  github_token: password?
   persistent_apk_packages:
     - str
   persistent_pip_packages:

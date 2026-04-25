@@ -24,6 +24,22 @@ if command -v welcome >/dev/null 2>&1; then
     welcome
 fi
 
+# Verify copilot binary works before launching tmux session
+if ! copilot --version >/dev/null 2>&1; then
+    echo ""
+    echo -e "\033[1;31m⚠  Copilot CLI failed to start.\033[0m"
+    echo ""
+    echo "Diagnostics:"
+    copilot --version 2>&1 || true
+    echo ""
+    echo "This is likely a glibc compatibility issue on Alpine Linux."
+    echo "The native binary requires glibc but Alpine uses musl."
+    echo ""
+    echo "You can still use this shell. Try running 'copilot' to see the error."
+    echo ""
+    exec bash
+fi
+
 # Start new tmux session running copilot.
 # If copilot exits, fall back to bash so the session stays alive.
 exec tmux new-session -s "$SESSION_NAME" 'copilot; echo ""; echo "Copilot exited. You are now in a bash shell."; echo "Run '\''copilot'\'' to restart, or '\''exit'\'' to close."; exec bash'

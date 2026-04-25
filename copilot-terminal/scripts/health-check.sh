@@ -66,18 +66,21 @@ check_node_installation() {
 check_copilot_cli() {
     bashio::log.info "=== Copilot CLI Check ==="
 
-    if command -v copilot >/dev/null 2>&1; then
-        bashio::log.info "Copilot CLI found at: $(which copilot) ✓"
-
-        if [ -x "$(which copilot)" ]; then
-            bashio::log.info "Copilot CLI is executable ✓"
-        else
-            bashio::log.error "Copilot CLI is not executable ✗"
-            return 1
-        fi
-    else
+    if ! command -v copilot >/dev/null 2>&1; then
         bashio::log.error "Copilot CLI not found ✗"
-        bashio::log.info "Attempting to install Copilot CLI..."
+        return 1
+    fi
+
+    bashio::log.info "Copilot CLI found at: $(which copilot) ✓"
+
+    # Actually run the binary to verify glibc/musl compatibility
+    local version_output
+    if version_output=$(copilot --version 2>&1); then
+        bashio::log.info "Copilot CLI version: ${version_output} ✓"
+    else
+        bashio::log.error "Copilot CLI binary failed to run ✗"
+        bashio::log.error "Output: ${version_output}"
+        bashio::log.info "This usually means the native binary is incompatible with Alpine musl libc"
         return 1
     fi
 }

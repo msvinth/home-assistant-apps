@@ -17,8 +17,8 @@ jobs:
         with:
           dockerfile: copilot-terminal/Dockerfile
           failure-threshold: error
-          # HA apps use BUILD_FROM arg for base image and Alpine rolling packages
-          ignore: DL3006,DL3018
+          # HA apps use BUILD_FROM arg for base image; Debian apt-get and pipe-install patterns
+          ignore: DL3006,DL3008,DL3013,DL4006
 
   build:
     name: Build (${{ matrix.arch }})
@@ -28,9 +28,9 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            build_from: ghcr.io/home-assistant/amd64-base:3.21
+            build_from: ghcr.io/hassio-addons/debian-base/amd64:7.6.0
           - arch: aarch64
-            build_from: ghcr.io/home-assistant/aarch64-base:3.21
+            build_from: ghcr.io/hassio-addons/debian-base/aarch64:7.6.0
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +52,7 @@ jobs:
           tags: test/copilot-terminal:${{ matrix.arch }}
           build-args: |
             BUILD_FROM=${{ matrix.build_from }}
+            BUILD_ARCH=${{ matrix.arch }}
 
       - name: Smoke test — image is runnable
         if: matrix.arch == 'amd64'
@@ -90,4 +91,18 @@ jobs:
                 fi
                 echo "OK: $bin"
               done
+            '
+
+      - name: Smoke test — copilot binary actually runs
+        if: matrix.arch == 'amd64'
+        run: |
+          docker run --rm --entrypoint /bin/bash \
+            test/copilot-terminal:amd64 -c '
+              output=$(copilot --version 2>&1)
+              if [ $? -ne 0 ] || [ -z "$output" ]; then
+                echo "FAIL: copilot --version produced no output or failed"
+                echo "Output: $output"
+                exit 1
+              fi
+              echo "OK: $output"
             '

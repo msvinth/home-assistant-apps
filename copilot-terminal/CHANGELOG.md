@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1
+
+- **Fixed**: Copilot CLI now works correctly — switched to standalone binary from GitHub releases
+- **Fixed**: Switched from Alpine to Debian base image for glibc compatibility
+- **Added**: `github_token` configuration option for PAT-based authentication
+- **Added**: `ingress_stream` support for reliable WebSocket connections
+- **Added**: Better error diagnostics when Copilot CLI fails to start
+- **Improved**: Health check now verifies the binary actually runs, not just exists
+
 ## 1.0.0
 
 - **Initial Release**: Copilot Terminal for Home Assistant

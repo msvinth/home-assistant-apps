@@ -34,6 +34,16 @@ init_environment() {
     # Copilot CLI uses $HOME/.copilot/ for its config by default
     # By setting HOME to /data/home, config persists across restarts
 
+    # Set GitHub token for Copilot CLI authentication if configured
+    if bashio::config.has_value 'github_token'; then
+        local gh_token
+        gh_token=$(bashio::config 'github_token')
+        if [ -n "$gh_token" ] && [ "$gh_token" != "null" ]; then
+            export GITHUB_TOKEN="$gh_token"
+            bashio::log.info "GitHub token configured from app settings"
+        fi
+    fi
+
     # Cap Node.js heap to avoid OOM kills on memory-constrained systems.
     local mem_avail_mb
     mem_avail_mb=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
@@ -73,7 +83,7 @@ install_tools() {
     for cmd in ttyd jq curl tmux; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
             bashio::log.warning "${cmd} not found, attempting install..."
-            if ! apk add --no-cache "$cmd"; then
+            if ! apt-get update -qq && apt-get install -y -qq "$cmd"; then
                 bashio::log.error "Failed to install ${cmd}"
                 missing=1
             fi
@@ -94,13 +104,13 @@ install_persistent_packages() {
     local apk_packages=""
     local pip_packages=""
 
-    # Collect APK packages from Home Assistant config
+    # Collect APK/APT packages from Home Assistant config
     if bashio::config.has_value 'persistent_apk_packages'; then
         local config_apk
         config_apk=$(bashio::config 'persistent_apk_packages')
         if [ -n "$config_apk" ] && [ "$config_apk" != "null" ]; then
             apk_packages="$config_apk"
-            bashio::log.info "Found APK packages in config: $apk_packages"
+            bashio::log.info "Found system packages in config: $apk_packages"
         fi
     fi
 
@@ -135,14 +145,14 @@ install_persistent_packages() {
     apk_packages=$(echo "$apk_packages" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
     pip_packages=$(echo "$pip_packages" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs)
 
-    # Install APK packages
+    # Install APT packages
     if [ -n "$apk_packages" ]; then
-        bashio::log.info "Installing persistent APK packages: $apk_packages"
+        bashio::log.info "Installing persistent system packages: $apk_packages"
         # shellcheck disable=SC2086
-        if apk add --no-cache $apk_packages; then
-            bashio::log.info "APK packages installed successfully"
+        if apt-get update -qq && apt-get install -y -qq $apk_packages; then
+            bashio::log.info "System packages installed successfully"
         else
-            bashio::log.warning "Some APK packages failed to install"
+            bashio::log.warning "Some system packages failed to install"
         fi
     fi
 

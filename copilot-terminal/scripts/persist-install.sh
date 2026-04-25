@@ -30,20 +30,22 @@ show_help() {
     echo -e "${BLUE}persist-install${NC} - Install packages that persist across container restarts"
     echo ""
     echo "Usage:"
-    echo "  persist-install apk <package1> [package2] ...  - Install APK packages"
+    echo "  persist-install apt <package1> [package2] ...  - Install APT packages"
     echo "  persist-install pip <package1> [package2] ...  - Install pip packages"
     echo "  persist-install list                           - List persistent packages"
-    echo "  persist-install remove apk <package>           - Remove APK package from persistence"
+    echo "  persist-install remove apt <package>           - Remove APT package from persistence"
     echo "  persist-install remove pip <package>           - Remove pip package from persistence"
     echo "  persist-install help                           - Show this help message"
     echo ""
     echo "Examples:"
-    echo "  persist-install apk vim htop"
+    echo "  persist-install apt vim htop"
     echo "  persist-install pip requests pandas numpy"
     echo "  persist-install list"
     echo ""
     echo -e "${YELLOW}Note:${NC} Packages are installed immediately and will be reinstalled"
     echo "      automatically after container restarts."
+    echo ""
+    echo -e "${YELLOW}Legacy:${NC} 'persist-install apk ...' also works (redirects to apt)."
 }
 
 list_packages() {
@@ -53,7 +55,7 @@ list_packages() {
     echo "==================="
     echo ""
 
-    echo -e "${GREEN}APK Packages:${NC}"
+    echo -e "${GREEN}APT Packages:${NC}"
     local apk_packages
     apk_packages=$(jq -r '.apk_packages[]' "$PERSIST_CONFIG" 2>/dev/null || echo "")
     if [ -z "$apk_packages" ]; then
@@ -82,15 +84,15 @@ install_apk() {
 
     if [ $# -eq 0 ]; then
         echo -e "${RED}Error:${NC} No packages specified"
-        echo "Usage: persist-install apk <package1> [package2] ..."
+        echo "Usage: persist-install apt <package1> [package2] ..."
         exit 1
     fi
 
     local packages=("$@")
 
-    echo -e "${BLUE}Installing APK packages:${NC} ${packages[*]}"
+    echo -e "${BLUE}Installing APT packages:${NC} ${packages[*]}"
 
-    if apk add --no-cache "${packages[@]}"; then
+    if apt-get update -qq && apt-get install -y -qq "${packages[@]}"; then
         echo -e "${GREEN}Installation successful!${NC}"
 
         for pkg in "${packages[@]}"; do
@@ -154,10 +156,10 @@ remove_package() {
     fi
 
     case "$pkg_type" in
-        apk)
+        apt|apk)
             jq "del(.apk_packages[] | select(. == \"$pkg_name\"))" "$PERSIST_CONFIG" > "${PERSIST_CONFIG}.tmp"
             mv "${PERSIST_CONFIG}.tmp" "$PERSIST_CONFIG"
-            echo -e "${GREEN}-${NC} Removed '$pkg_name' from persistent APK packages"
+            echo -e "${GREEN}-${NC} Removed '$pkg_name' from persistent APT packages"
             echo -e "${YELLOW}Note:${NC} Package is still installed until container restart"
             ;;
         pip)
@@ -179,7 +181,7 @@ main() {
     shift || true
 
     case "$command" in
-        apk)
+        apt|apk)
             install_apk "$@"
             ;;
         pip)
