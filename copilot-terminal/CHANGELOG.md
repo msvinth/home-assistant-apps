@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.9
+
+- **Fixed**: OSC 52 clipboard now writes to `/dev/tty` instead of stdout (reaches terminal even when called from a subprocess)
+- **Fixed**: tmux `set-clipboard` changed from `on` to `external` to pass OSC 52 through to ttyd
+
 ## 1.0.8
 
 - **Fixed**: Clipboard copy/paste — replaced `xclip` with OSC 52 wrapper that works in headless/web terminals

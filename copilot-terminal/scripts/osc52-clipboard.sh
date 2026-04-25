@@ -45,11 +45,15 @@ fi
 # Base64 encode
 encoded="$(printf '%s' "$text" | base64 | tr -d '\n')"
 
-# Determine the correct escape sequence based on whether we're inside tmux
+# Write OSC 52 to /dev/tty (the actual terminal), NOT stdout.
+# When invoked as `echo text | xclip`, stdout may be captured by the caller.
+# /dev/tty bypasses any pipe/redirect and reaches the terminal directly.
+TTY="${TTY_DEVICE:-/dev/tty}"
+
 if [ -n "$TMUX" ]; then
-    # Wrap OSC 52 in tmux passthrough: DCS tmux; <escaped-osc52> ST
-    printf '\ePtmux;\e\e]52;c;%s\a\e\\' "$encoded"
+    # Wrap OSC 52 in tmux DCS passthrough so it reaches the outer terminal (ttyd)
+    printf '\ePtmux;\e\e]52;c;%s\a\e\\' "$encoded" > "$TTY" 2>/dev/null
 else
     # Direct OSC 52
-    printf '\e]52;c;%s\a' "$encoded"
+    printf '\e]52;c;%s\a' "$encoded" > "$TTY" 2>/dev/null
 fi
