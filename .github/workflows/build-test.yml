@@ -17,8 +17,8 @@ jobs:
         with:
           dockerfile: copilot-terminal/Dockerfile
           failure-threshold: error
-          # HA apps use BUILD_FROM arg for base image; Debian apt-get and pipe-install patterns
-          ignore: DL3006,DL3008,DL3013,DL4006
+          # Debian apt-get and pipe-install patterns
+          ignore: DL3008,DL3013,DL4006
 
   build:
     name: Build (${{ matrix.arch }})
@@ -28,9 +28,9 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            build_from: ghcr.io/hassio-addons/debian-base/amd64:7.6.0
+            platform: linux/amd64
           - arch: aarch64
-            build_from: ghcr.io/hassio-addons/debian-base/aarch64:7.6.0
+            platform: linux/arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -46,13 +46,9 @@ jobs:
         with:
           context: ./copilot-terminal
           push: false
-          # --load only works for native arch; cross-arch just verifies build succeeds
           load: ${{ matrix.arch == 'amd64' }}
-          platforms: ${{ matrix.arch == 'amd64' && 'linux/amd64' || 'linux/arm64' }}
+          platforms: ${{ matrix.platform }}
           tags: test/copilot-terminal:${{ matrix.arch }}
-          build-args: |
-            BUILD_FROM=${{ matrix.build_from }}
-            BUILD_ARCH=${{ matrix.arch }}
 
       - name: Smoke test — image is runnable
         if: matrix.arch == 'amd64'

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- **Fixed**: Build failure on aarch64 — auto-detect architecture with `uname -m` instead of relying on `BUILD_ARCH` arg
+- **Fixed**: Removed `BUILD_ARCH` build arg from build.yaml (Supervisor `{arch}` template not resolved)
+
 ## 1.0.1
 
 - **Fixed**: Copilot CLI now works correctly — switched to standalone binary from GitHub releases

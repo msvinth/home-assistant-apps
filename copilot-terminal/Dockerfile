@@ -1,5 +1,13 @@
-ARG BUILD_FROM
-FROM ${BUILD_FROM}
+FROM ghcr.io/hassio-addons/debian-base:7.6.0
+
+LABEL \
+  io.hass.version="1.0.2" \
+  io.hass.type="app" \
+  io.hass.arch="aarch64|amd64" \
+  org.opencontainers.image.title="Copilot Terminal" \
+  org.opencontainers.image.description="GitHub Copilot CLI terminal for Home Assistant" \
+  org.opencontainers.image.source="https://github.com/msvinth/home-assistant-apps" \
+  org.opencontainers.image.licenses="MIT"
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -30,12 +38,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GitHub Copilot CLI (standalone binary from GitHub releases)
-ARG BUILD_ARCH
-RUN case "${BUILD_ARCH}" in \
-        amd64)   COPILOT_ARCH="x64"   ;; \
+# Auto-detect architecture — no BUILD_ARCH arg needed
+RUN MACHINE=$(uname -m) && \
+    case "${MACHINE}" in \
+        x86_64)  COPILOT_ARCH="x64"   ;; \
         aarch64) COPILOT_ARCH="arm64"  ;; \
-        *)       COPILOT_ARCH="x64"    ;; \
+        *)       echo "Unsupported arch: ${MACHINE}" && exit 1 ;; \
     esac && \
+    echo "Detected arch: ${MACHINE} → copilot-linux-${COPILOT_ARCH}" && \
     curl -fsSL \
       "https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-${COPILOT_ARCH}.tar.gz" \
       -o /tmp/copilot.tar.gz && \
@@ -45,10 +55,11 @@ RUN case "${BUILD_ARCH}" in \
     copilot --version
 
 # Install ttyd (web terminal server)
-RUN case "${BUILD_ARCH}" in \
-        amd64)   TTYD_ARCH="x86_64"   ;; \
+RUN MACHINE=$(uname -m) && \
+    case "${MACHINE}" in \
+        x86_64)  TTYD_ARCH="x86_64"   ;; \
         aarch64) TTYD_ARCH="aarch64"   ;; \
-        *)       TTYD_ARCH="x86_64"    ;; \
+        *)       echo "Unsupported arch: ${MACHINE}" && exit 1 ;; \
     esac && \
     curl -fsSL \
       "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.${TTYD_ARCH}" \
@@ -56,10 +67,11 @@ RUN case "${BUILD_ARCH}" in \
     chmod +x /usr/bin/ttyd
 
 # Install yq (YAML processor)
-RUN case "${BUILD_ARCH}" in \
-        amd64)   YQ_ARCH="amd64"   ;; \
+RUN MACHINE=$(uname -m) && \
+    case "${MACHINE}" in \
+        x86_64)  YQ_ARCH="amd64"   ;; \
         aarch64) YQ_ARCH="arm64"   ;; \
-        *)       YQ_ARCH="amd64"   ;; \
+        *)       echo "Unsupported arch: ${MACHINE}" && exit 1 ;; \
     esac && \
     curl -fsSL \
       "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${YQ_ARCH}" \
