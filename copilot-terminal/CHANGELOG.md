@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6
+
+- **Added**: `xclip` for clipboard support (fixes copy/paste in Copilot CLI)
+
 ## 1.0.5
 
 - **Fixed**: "No copilot instructions found" — symlink HA context to `/config/.github/copilot-instructions.md` and `/config/copilot-instructions.md` so Copilot CLI finds it in the working directory
