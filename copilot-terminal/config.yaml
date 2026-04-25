@@ -1,7 +1,7 @@
 ---
 name: "Copilot Terminal"
 description: "Terminal interface for GitHub Copilot CLI with persistent auth and packages"
-version: "1.0.7"
+version: "1.0.8"
 slug: "copilot_terminal"
 init: false
 

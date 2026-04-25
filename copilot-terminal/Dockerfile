@@ -1,7 +1,7 @@
 FROM ghcr.io/hassio-addons/debian-base:7.6.0
 
 LABEL \
-  io.hass.version="1.0.7" \
+  io.hass.version="1.0.8" \
   io.hass.type="app" \
   io.hass.arch="aarch64|amd64" \
   org.opencontainers.image.title="Copilot Terminal" \
@@ -23,7 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tmux \
     python3 \
     python3-pip \
-    xclip \
     openssh-client \
     ca-certificates \
     procps \
@@ -84,7 +83,10 @@ COPY run.sh /run.sh
 COPY scripts/ /opt/scripts/
 COPY CHANGELOG.md /opt/scripts/CHANGELOG.md
 RUN chmod +x /run.sh \
-    && chmod +x /opt/scripts/*.sh
+    && chmod +x /opt/scripts/*.sh \
+    && ln -sf /opt/scripts/osc52-clipboard.sh /usr/local/bin/xclip \
+    && ln -sf /opt/scripts/osc52-clipboard.sh /usr/local/bin/xsel \
+    && ln -sf /opt/scripts/osc52-clipboard.sh /usr/local/bin/pbcopy
 
 # Use exec form for better signal handling
 CMD ["/run.sh"]

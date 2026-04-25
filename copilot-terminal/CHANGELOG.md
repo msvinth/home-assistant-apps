@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.8
+
+- **Fixed**: Clipboard copy/paste — replaced `xclip` with OSC 52 wrapper that works in headless/web terminals
+- **Removed**: `xclip` package (requires X display, doesn't work in ttyd)
+- **Added**: `osc52-clipboard.sh` installed as `xclip`, `xsel`, and `pbcopy` — sends clipboard data to browser via escape sequences
+
 ## 1.0.7
 
 - **Fixed**: Copilot instructions now linked to all known locations (`.copilot-instructions.md`, `.copilot/copilot-instructions.md`, `.github/copilot-instructions.md`)
