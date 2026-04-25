@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7
+
+- **Fixed**: Copilot instructions now linked to all known locations (`.copilot-instructions.md`, `.copilot/copilot-instructions.md`, `.github/copilot-instructions.md`)
+
 ## 1.0.6
 
 - **Added**: `xclip` for clipboard support (fixes copy/paste in Copilot CLI)
