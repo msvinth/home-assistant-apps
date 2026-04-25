@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Terminal</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ---- Header bar ---- */
+        #header {
+            background: #161b22;
+            padding: 4px 12px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+            height: 32px;
+        }
+
+        #status {
+            font-size: 12px;
+            color: #484f58;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 60%;
+            transition: color 0.2s;
+            cursor: default;
+        }
+        #status.success { color: #3fb950; }
+        #status.error   { color: #ff7b72; }
+
+        .hdr-btn {
+            background: none;
+            color: #484f58;
+            border: 1px solid #30363d;
+            padding: 2px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        .hdr-btn:hover { color: #c9d1d9; border-color: #58a6ff; }
+        .hdr-btn:active { background: #30363d; }
+
+        /* ---- Terminal iframe ---- */
+        #terminal-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #terminal-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #0d1117;
+        }
+
+        /* Copy toast notification */
+        #copy-toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #161b22;
+            color: #3fb950;
+            border: 1px solid #3fb950;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 9999;
+        }
+        #copy-toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ---- Drag-drop overlay ---- */
+        #drop-zone {
+            position: absolute;
+            inset: 0;
+            background: rgba(88, 166, 255, 0.15);
+            border: 3px dashed #58a6ff;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        #drop-zone.active { display: flex; }
+        #drop-zone-text {
+            font-size: 20px;
+            font-weight: 500;
+            color: #58a6ff;
+        }
+
+        /* Hidden file input */
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <span id="status"></span>
+            <button id="upload-btn" class="hdr-btn" title="Upload an image for Copilot to analyze">
+                <span>&#x1F4CE;</span><span>Upload Image</span>
+            </button>
+        </div>
+        <div id="terminal-container">
+            <iframe id="terminal-frame" src="terminal/" allow="clipboard-read; clipboard-write"></iframe>
+            <div id="drop-zone">
+                <div id="drop-zone-text">Drop image here to upload</div>
+            </div>
+        </div>
+    </div>
+    <input type="file" id="file-input" accept="image/*">
+    <div id="copy-toast"></div>
+
+    <script>
+        const status    = document.getElementById('status');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const dropZone  = document.getElementById('drop-zone');
+        const iframe    = document.getElementById('terminal-frame');
+        const copyToast = document.getElementById('copy-toast');
+
+        async function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } catch (_) { /* fall through */ }
+            }
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                if (ok) return true;
+            } catch (_) { /* fall through */ }
+            return false;
+        }
+
+        function showToast(msg) {
+            copyToast.textContent = msg;
+            copyToast.classList.add('visible');
+            setTimeout(() => copyToast.classList.remove('visible'), 2000);
+        }
+
+        let statusTimer;
+        function setStatus(msg, cls, persistent) {
+            clearTimeout(statusTimer);
+            status.textContent = msg;
+            status.className = cls || '';
+            if (msg && !persistent) {
+                statusTimer = setTimeout(() => { status.textContent = ''; status.className = ''; }, 6000);
+            }
+        }
+
+        async function uploadImage(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                setStatus('Not an image file', 'error');
+                return;
+            }
+            setStatus('Uploading…', '');
+            const form = new FormData();
+            form.append('image', file);
+            try {
+                const resp = await fetch('upload', { method: 'POST', body: form });
+                if (!resp.ok) {
+                    const body = await resp.json().catch(() => ({}));
+                    throw new Error(body.error || `HTTP ${resp.status}`);
+                }
+                const result = await resp.json();
+                if (result.success) {
+                    const p = result.path;
+                    setStatus(`Saved: ${p}  (click to copy)`, 'success', true);
+                    status.style.cursor = 'pointer';
+                    status.onclick = async () => {
+                        const ok = await copyToClipboard(p);
+                        if (ok) {
+                            showToast('Path copied to clipboard!');
+                            setStatus('Copied!', 'success');
+                        } else {
+                            window.prompt('Copy this path:', p);
+                        }
+                    };
+                    copyToClipboard(p).catch(() => {});
+                } else {
+                    setStatus(result.error || 'Upload failed', 'error');
+                }
+            } catch (err) {
+                setStatus('Upload failed: ' + err.message, 'error');
+            }
+        }
+
+        function handlePaste(e) {
+            const items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    uploadImage(item.getAsFile());
+                    return;
+                }
+            }
+        }
+
+        document.addEventListener('paste', handlePaste, true);
+
+        function injectIframeHandlers() {
+            try {
+                const win = iframe.contentWindow;
+                const doc = win && (iframe.contentDocument || win.document);
+                if (!doc) return;
+
+                doc.addEventListener('paste', handlePaste, true);
+
+                try {
+                    if (win.Clipboard && win.Clipboard.prototype) {
+                        const origProto = win.Clipboard.prototype.writeText;
+                        win.Clipboard.prototype.writeText = function(text) {
+                            return copyToClipboard(text).then(ok => {
+                                if (!ok) return origProto.call(this, text);
+                            });
+                        };
+                    }
+                } catch (_) {}
+
+                try {
+                    if (win.navigator && win.navigator.clipboard) {
+                        win.navigator.clipboard.writeText = (text) => {
+                            return copyToClipboard(text);
+                        };
+                    }
+                } catch (_) {}
+
+                doc.addEventListener('mouseup', () => {
+                    setTimeout(() => {
+                        const sel = win.getSelection ? win.getSelection() : null;
+                        const text = sel ? sel.toString() : '';
+                        if (text) {
+                            copyToClipboard(text);
+                        }
+                    }, 50);
+                });
+
+                doc.addEventListener('copy', (e) => {
+                    const sel = win.getSelection && win.getSelection();
+                    const text = sel ? sel.toString() : '';
+                    if (text) {
+                        e.preventDefault();
+                        if (e.clipboardData) {
+                            e.clipboardData.setData('text/plain', text);
+                        }
+                        copyToClipboard(text);
+                    }
+                }, true);
+            } catch (err) {
+                console.warn('Could not inject handlers into terminal iframe:', err);
+            }
+        }
+        iframe.addEventListener('load', injectIframeHandlers);
+        iframe.addEventListener('load', () => setTimeout(injectIframeHandlers, 2000));
+        iframe.addEventListener('load', () => setTimeout(injectIframeHandlers, 5000));
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) uploadImage(e.target.files[0]);
+            fileInput.value = '';
+        });
+
+        let dragCounter = 0;
+        document.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            if (++dragCounter === 1) dropZone.classList.add('active');
+        });
+        document.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            if (--dragCounter === 0) dropZone.classList.remove('active');
+        });
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dropZone.classList.remove('active');
+            const files = e.dataTransfer && e.dataTransfer.files;
+            if (files && files.length) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) uploadImage(file);
+                else setStatus('Not an image file', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

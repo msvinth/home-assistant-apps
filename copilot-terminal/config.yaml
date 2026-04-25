@@ -1,0 +1,59 @@
+---
+name: "Copilot Terminal"
+description: "Terminal interface for GitHub Copilot CLI with persistent auth and packages"
+version: "1.0.0"
+slug: "copilot_terminal"
+init: false
+
+# Supported architectures (armv7 not supported by @github/copilot)
+arch:
+  - aarch64
+  - amd64
+
+# External resources
+url: "https://github.com/githubnext/copilot-cli"
+
+# Web interface configuration
+ingress: true
+ingress_port: 7680
+panel_icon: mdi:github
+panel_title: "Copilot Terminal"
+panel_admin: true
+
+# Port configuration (7681 is internal only, not exposed to host)
+ports:
+  7680/tcp: null
+ports_description:
+  7680/tcp: "Web interface with image upload (ingress entrypoint)"
+
+# App configuration options
+options:
+  auto_launch_copilot: true
+  ha_smart_context: true
+  enable_ha_mcp: true
+  persistent_apk_packages: []
+  persistent_pip_packages: []
+schema:
+  auto_launch_copilot: bool?
+  ha_smart_context: bool?
+  enable_ha_mcp: bool?
+  persistent_apk_packages:
+    - str
+  persistent_pip_packages:
+    - str
+
+# Volume mappings for file access
+map:
+  - config:rw # Access to Home Assistant configuration files
+
+# API access for Home Assistant integration
+hassio_api: true
+hassio_role: manager
+homeassistant_api: true
+auth_api: true
+
+# Service startup configuration
+startup: services
+
+# Web UI access URL
+webui: http://[HOST]:[PORT:7680]/

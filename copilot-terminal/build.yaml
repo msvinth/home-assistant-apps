@@ -1,0 +1,9 @@
+build_from:
+  aarch64: ghcr.io/home-assistant/aarch64-base:3.21
+  amd64: ghcr.io/home-assistant/amd64-base:3.21
+
+labels:
+  org.opencontainers.image.title: "Home Assistant App: Copilot Terminal"
+  org.opencontainers.image.description: "Terminal interface for GitHub Copilot CLI"
+  org.opencontainers.image.source: "https://github.com/msvinth/home-assistant-apps"
+  org.opencontainers.image.licenses: "MIT"
