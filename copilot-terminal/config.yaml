@@ -1,7 +1,7 @@
 ---
 name: "Copilot Terminal"
 description: "Terminal interface for GitHub Copilot CLI with persistent auth and packages"
-version: "1.0.2"
+version: "1.0.3"
 slug: "copilot_terminal"
 init: false
 
@@ -21,11 +21,11 @@ panel_icon: mdi:github
 panel_title: "Copilot Terminal"
 panel_admin: true
 
-# Port configuration (7681 is internal only, not exposed to host)
+# Port configuration
 ports:
   7680/tcp: null
 ports_description:
-  7680/tcp: "Web interface with image upload (ingress entrypoint)"
+  7680/tcp: "Web terminal (ingress entrypoint)"
 
 # App configuration options
 options:

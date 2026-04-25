@@ -44,23 +44,20 @@ init_environment() {
         fi
     fi
 
-    # Cap Node.js heap to avoid OOM kills on memory-constrained systems.
+    # Log memory status. The standalone Copilot binary is native (not Node.js),
+    # so NODE_OPTIONS is not set — it would only affect MCP servers or npm tools.
     local mem_avail_mb
     mem_avail_mb=$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)
-    local heap_mb=256  # default
+    local mem_total_mb
+    mem_total_mb=$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)
 
-    if [ "$mem_avail_mb" -lt 200 ]; then
-        heap_mb=64
-        bashio::log.warning "Very low memory (${mem_avail_mb}MB available) — Node.js heap capped to ${heap_mb}MB"
-        bashio::log.warning "Copilot CLI may struggle. Consider freeing memory by disabling other apps."
-    elif [ "$mem_avail_mb" -lt 400 ]; then
-        heap_mb=128
-        bashio::log.info "Low memory (${mem_avail_mb}MB available) — Node.js heap capped to ${heap_mb}MB"
+    if [ "$mem_avail_mb" -lt 300 ]; then
+        bashio::log.warning "Low memory: ${mem_avail_mb}MB free of ${mem_total_mb}MB total"
+        bashio::log.warning "Copilot CLI needs ~300-500MB to process requests"
+        bashio::log.warning "Consider stopping other apps to free memory"
     else
-        bashio::log.info "Memory OK (${mem_avail_mb}MB available) — Node.js heap set to ${heap_mb}MB"
+        bashio::log.info "Memory: ${mem_avail_mb}MB free of ${mem_total_mb}MB total"
     fi
-
-    export NODE_OPTIONS="--max-old-space-size=${heap_mb}"
 
     # Install tmux configuration to user home directory
     if [ -f "/opt/scripts/tmux.conf" ]; then
@@ -281,45 +278,14 @@ get_copilot_launch_command() {
     fi
 }
 
-# Start image upload service (lightweight Python proxy in front of ttyd)
-start_image_service() {
-    local image_port=7680
-    local ttyd_port=7681
-    local upload_dir="/data/images"
-
-    bashio::log.info "Starting image upload service on port ${image_port}..."
-
-    mkdir -p "${upload_dir}"
-    chmod 755 "${upload_dir}"
-
-    export IMAGE_SERVICE_PORT="${image_port}"
-    export TTYD_PORT="${ttyd_port}"
-    export UPLOAD_DIR="${upload_dir}"
-
-    if [ ! -f /opt/image-service/server.py ]; then
-        bashio::log.warning "Image service not found, skipping (terminal will work without image upload)"
-        return
-    fi
-
-    PYTHONUNBUFFERED=1 python3 /opt/image-service/server.py 2>&1 &
-    local pid=$!
-    bashio::log.info "Image service started (PID: ${pid})"
-
-    # Brief pause so the proxy is ready before ttyd starts
-    sleep 1
-}
-
 # Start main web terminal
+# ttyd listens directly on the ingress port (no proxy layer)
 start_web_terminal() {
-    local port=7681
+    local port=7680
     bashio::log.info "Starting web terminal on port ${port}..."
 
     # Log environment information for debugging
-    bashio::log.info "Environment variables:"
     bashio::log.info "HOME=${HOME}"
-
-    # Start image upload / paste service before ttyd
-    start_image_service
 
     # Get the appropriate launch command based on configuration
     local launch_spec
@@ -345,24 +311,28 @@ start_web_terminal() {
             --port "${port}" \
             --interface 0.0.0.0 \
             --writable \
-            --ping-interval 15 \
+            --ping-interval 30 \
+            --max-clients 5 \
             --client-option enableReconnect=true \
             --client-option reconnect=0 \
             --client-option reconnectInterval=3 \
             --client-option "theme=${ttyd_theme}" \
             --client-option fontSize=14 \
+            --client-option disableLeaveAlert=true \
             "$launch_command"
     else
         exec ttyd \
             --port "${port}" \
             --interface 0.0.0.0 \
             --writable \
-            --ping-interval 15 \
+            --ping-interval 30 \
+            --max-clients 5 \
             --client-option enableReconnect=true \
             --client-option reconnect=0 \
             --client-option reconnectInterval=3 \
             --client-option "theme=${ttyd_theme}" \
             --client-option fontSize=14 \
+            --client-option disableLeaveAlert=true \
             bash -c "$launch_command"
     fi
 }

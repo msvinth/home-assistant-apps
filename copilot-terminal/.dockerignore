@@ -1,0 +1,4 @@
+image-service/
+*.md
+!CHANGELOG.md
+.dockerignore

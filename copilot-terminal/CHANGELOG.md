@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.3
+
+- **Fixed**: OOM kills on memory-constrained systems (~2GB RAM)
+- **Removed**: Python image-service proxy — ttyd now listens directly on ingress port, saving ~30-50MB RAM
+- **Removed**: Unnecessary Python packages (aiohttp, requests, bs4, yaml) from Docker image
+- **Removed**: `NODE_OPTIONS` env var — irrelevant for native Copilot binary
+- **Added**: Memory warning at startup when available RAM is below 300MB
+- **Improved**: Simpler architecture — fewer processes, lower memory footprint
+
 ## 1.0.2
 
 - **Fixed**: Build failure on aarch64 — auto-detect architecture with `uname -m` instead of relying on `BUILD_ARCH` arg
