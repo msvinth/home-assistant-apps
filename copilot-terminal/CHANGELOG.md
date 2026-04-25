@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.4
+
+- **Fixed**: Further OOM reduction — removed Node.js/npm (~100MB+ RAM savings)
+- **Removed**: nodejs, npm, vim, wget, tree, python3-aiohttp/requests/bs4/yaml from image
+- **Improved**: Health check now reports swap usage and warns at 400MB threshold
+- **Improved**: Lighter health check (fewer network checks, no node.js check)
+- **Note**: Copilot CLI is a native binary — Node.js was never needed at runtime
+
 ## 1.0.3
 
 - **Fixed**: OOM kills on memory-constrained systems (~2GB RAM)

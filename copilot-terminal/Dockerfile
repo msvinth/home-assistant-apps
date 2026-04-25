@@ -1,7 +1,7 @@
 FROM ghcr.io/hassio-addons/debian-base:7.6.0
 
 LABEL \
-  io.hass.version="1.0.3" \
+  io.hass.version="1.0.4" \
   io.hass.type="app" \
   io.hass.arch="aarch64|amd64" \
   org.opencontainers.image.title="Copilot Terminal" \
@@ -13,21 +13,16 @@ ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     TERM=xterm-256color
 
-# Install system dependencies
+# Install system dependencies (minimal — no nodejs/npm, copilot is a native binary)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     curl \
     nano \
     git \
-    vim \
-    wget \
     jq \
-    tree \
     tmux \
     python3 \
     python3-pip \
-    nodejs \
-    npm \
     openssh-client \
     ca-certificates \
     procps \
