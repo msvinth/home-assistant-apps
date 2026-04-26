@@ -1,7 +1,7 @@
 FROM ghcr.io/hassio-addons/debian-base:7.6.0
 
 LABEL \
-  io.hass.version="1.0.9" \
+  io.hass.version="1.1.0" \
   io.hass.type="app" \
   io.hass.arch="aarch64|amd64" \
   org.opencontainers.image.title="Copilot Terminal" \
@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tmux \
     python3 \
     python3-pip \
+    python3-aiohttp \
     openssh-client \
     ca-certificates \
     procps \
@@ -77,6 +78,9 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 # Create directory for Copilot configuration and set working directory
 RUN mkdir -p /config
 WORKDIR /config
+
+# Copy image upload service
+COPY image-service/ /opt/image-service/
 
 # Copy startup script, modular scripts, and changelog
 COPY run.sh /run.sh

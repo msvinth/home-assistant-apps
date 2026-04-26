@@ -290,14 +290,47 @@ get_copilot_launch_command() {
     fi
 }
 
-# Start main web terminal
-# ttyd listens directly on the ingress port (no proxy layer)
-start_web_terminal() {
-    local port=7680
-    bashio::log.info "Starting web terminal on port ${port}..."
+# Start image upload service (Python proxy in front of ttyd)
+# Provides drag-drop/paste image upload + clipboard helpers
+start_image_service() {
+    local image_port=7680
+    local ttyd_port=7681
+    local upload_dir="/data/images"
 
-    # Log environment information for debugging
+    bashio::log.info "Starting image upload service on port ${image_port}..."
+
+    mkdir -p "${upload_dir}"
+    chmod 755 "${upload_dir}"
+
+    export IMAGE_SERVICE_PORT="${image_port}"
+    export TTYD_PORT="${ttyd_port}"
+    export UPLOAD_DIR="${upload_dir}"
+
+    if [ ! -f /opt/image-service/server.py ]; then
+        bashio::log.warning "Image service not found, ttyd will listen on ingress port directly"
+        return 1
+    fi
+
+    PYTHONUNBUFFERED=1 python3 /opt/image-service/server.py 2>&1 &
+    local pid=$!
+    bashio::log.info "Image service started (PID: ${pid})"
+
+    sleep 1
+    return 0
+}
+
+# Start main web terminal
+start_web_terminal() {
     bashio::log.info "HOME=${HOME}"
+
+    # Try to start image service (proxy on 7680, ttyd on 7681)
+    # If it fails, ttyd listens directly on 7680
+    local ttyd_port=7680
+    if start_image_service; then
+        ttyd_port=7681
+    fi
+
+    bashio::log.info "Starting web terminal on port ${ttyd_port}..."
 
     # Get the appropriate launch command based on configuration
     local launch_spec
@@ -320,7 +353,7 @@ start_web_terminal() {
 
     if [ "$launch_type" = "direct" ]; then
         exec ttyd \
-            --port "${port}" \
+            --port "${ttyd_port}" \
             --interface 0.0.0.0 \
             --writable \
             --ping-interval 30 \
@@ -334,7 +367,7 @@ start_web_terminal() {
             "$launch_command"
     else
         exec ttyd \
-            --port "${port}" \
+            --port "${ttyd_port}" \
             --interface 0.0.0.0 \
             --writable \
             --ping-interval 30 \

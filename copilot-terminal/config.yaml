@@ -1,7 +1,7 @@
 ---
 name: "Copilot Terminal"
 description: "Terminal interface for GitHub Copilot CLI with persistent auth and packages"
-version: "1.0.9"
+version: "1.1.0"
 slug: "copilot_terminal"
 init: false
 
@@ -25,7 +25,7 @@ panel_admin: true
 ports:
   7680/tcp: null
 ports_description:
-  7680/tcp: "Web terminal (ingress entrypoint)"
+  7680/tcp: "Web interface with image upload (ingress entrypoint)"
 
 # App configuration options
 options:

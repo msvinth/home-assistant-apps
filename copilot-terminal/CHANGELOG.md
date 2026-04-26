@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- **Added**: Restored image upload service — drag-drop, paste, and button upload of images
+- **Added**: `python3-aiohttp` back in Docker image for image proxy
+- **Added**: Custom HTML wrapper with clipboard helpers and image upload UI
+- **Improved**: Image service gracefully falls back — if it fails to start, ttyd runs directly on ingress port
+
 ## 1.0.9
 
 - **Fixed**: OSC 52 clipboard now writes to `/dev/tty` instead of stdout (reaches terminal even when called from a subprocess)
